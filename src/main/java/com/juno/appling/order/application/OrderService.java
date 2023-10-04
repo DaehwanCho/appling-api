@@ -17,6 +17,7 @@ import com.juno.appling.product.domain.Product;
 import com.juno.appling.product.domain.ProductRepository;
 import com.juno.appling.product.enums.Status;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -146,7 +147,9 @@ public class OrderService {
         return order;
     }
 
-    public OrderListResponse getOrderBySeller(Pageable pageable, String search, OrderStatus orderStatus, HttpServletRequest request) {
+    public OrderListResponse getOrderBySeller(Pageable pageable, String search, String status, HttpServletRequest request) {
+        OrderStatus orderStatus = status.equals("") ? null : OrderStatus.valueOf(status.toUpperCase(Locale.ROOT));
+
         Seller seller = memberUtil.getSeller(request);
         Page<OrderVo> page = orderCustomRepository.findAllBySeller(pageable, search,
             orderStatus, seller);

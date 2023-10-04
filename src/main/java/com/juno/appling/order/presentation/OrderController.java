@@ -6,10 +6,14 @@ import com.juno.appling.order.application.OrderService;
 import com.juno.appling.order.dto.request.CompleteOrderRequest;
 import com.juno.appling.order.dto.request.TempOrderRequest;
 import com.juno.appling.order.dto.response.CompleteOrderResponse;
+import com.juno.appling.order.dto.response.OrderListResponse;
 import com.juno.appling.order.dto.response.TempOrderResponse;
 import com.juno.appling.order.dto.response.PostTempOrderResponse;
+import com.juno.appling.order.enums.OrderStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -52,5 +56,17 @@ public class OrderController {
                 .message(ResultCode.SUCCESS.message)
                 .data(orderService.completeOrder(completeOrderRequest, request))
                 .build());
+    }
+
+    @GetMapping("/seller/list")
+    public ResponseEntity<Api<OrderListResponse>> getOrderListBySeller( @PageableDefault(size = 10, page = 0) Pageable pageable,
+        @RequestParam(required = false, name = "search") String search,
+        @RequestParam(required = false, name = "status", defaultValue = "") String status,
+        HttpServletRequest request) {
+        return ResponseEntity.ok(Api.<OrderListResponse>builder()
+            .code(ResultCode.SUCCESS.code)
+            .message(ResultCode.SUCCESS.message)
+            .data(orderService.getOrderBySeller(pageable, search, status, request))
+            .build());
     }
 }

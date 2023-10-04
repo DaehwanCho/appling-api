@@ -1,5 +1,6 @@
 package com.juno.appling.order.presentation;
 
+import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.HttpHeaders;
 import com.juno.appling.ControllerBaseTest;
 import com.juno.appling.member.application.MemberAuthService;
 import com.juno.appling.member.domain.Member;
@@ -26,9 +27,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
@@ -41,6 +44,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -270,4 +274,83 @@ class OrderControllerDocs extends ControllerBaseTest {
         ));
     }
 
+    @Test
+    @DisplayName(PREFIX + "/seller/list (GET)")
+    @Transactional
+    void getOrderListBySeller() throws Exception {
+        //given
+        Member member = memberRepository.findByEmail(MEMBER_EMAIL).get();
+        Member sellerMember = memberRepository.findByEmail(SELLER_EMAIL).get();
+        Category category = categoryRepository.findById(1L).get();
+
+        ProductRequest searchDto1 = new ProductRequest(1L, "검색 제목", "메인 설명", "상품 메인 설명", "상품 서브 설명", 10000,
+            8000, "보관 방법", "원산지", "생산자", "https://mainImage", "https://image1", "https://image2",
+            "https://image3", "normal");
+        ProductRequest searchDto2 = new ProductRequest(1L, "검색 제목2", "메인 설명", "상품 메인 설명", "상품 서브 설명", 15000,
+            10000, "보관 방법", "원산지", "생산자", "https://mainImage", "https://image1", "https://image2",
+            "https://image3", "normal");
+
+        LoginRequest loginRequest = new LoginRequest(SELLER_EMAIL, "password");
+        LoginResponse login = memberAuthService.login(loginRequest);
+
+        Seller seller = sellerRepository.findByMember(sellerMember).get();
+        Product saveProduct1 = productRepository.save(Product.of(seller, category, searchDto1));
+
+        Member sellerMember2 = memberRepository.findByEmail(SELLER2_EMAIL).get();
+        Seller seller2 = sellerRepository.findByMember(sellerMember2).get();
+        Product saveProduct2 = productRepository.save(Product.of(seller2, category, searchDto2));
+
+        Order order1 = orderRepository.save(Order.of(member, "테스트 상품"));
+        orderItemRepository.save(OrderItem.of(order1, saveProduct1, 2));
+        orderItemRepository.save(OrderItem.of(order1, saveProduct2, 5));
+        order1.statusComplete();
+        order1.orderNumber("ORDER-20001122-test");
+
+        Order order2 = orderRepository.save(Order.of(member, "임시 상태 주문 상품"));
+
+        Order order3 = orderRepository.save(Order.of(member, "테스트 상품2"));
+        orderItemRepository.save(OrderItem.of(order3, saveProduct1, 10));
+        orderItemRepository.save(OrderItem.of(order3, saveProduct2, 1));
+        order3.statusComplete();
+        order3.orderNumber("ORDER-20001122-test2");
+
+        Order order4 = orderRepository.save(Order.of(member, "셀러1에게 표시되지 않을 상품"));
+        orderItemRepository.save(OrderItem.of(order4, saveProduct2, 1));
+        order4.statusComplete();
+        order4.orderNumber("ORDER-20001122-test3");
+
+        //when
+        ResultActions perform = mock.perform(
+            get(PREFIX + "/seller/list")
+                .header(AUTHORIZATION, "Bearer " + login.getAccessToken())
+                .queryParam("search", "")
+                .queryParam("page", "0")
+                .queryParam("size", "10")
+                .queryParam("status", "")
+        );
+
+
+        //then
+        perform.andExpect(status().is2xxSuccessful());
+        perform.andDo(docs.document(
+            requestHeaders(
+                headerWithName(AUTHORIZATION).description("access token (SELLER 권한 이상)")
+            ),
+            queryParameters(
+                parameterWithName("search").description("검색어"),
+                parameterWithName("page").description("page 번호"),
+                parameterWithName("size").description("요청당 반환 받을 리스트 크기"),
+                parameterWithName("status").description("주문 상태 / order:주문중, complete:주문완료, cancel:취소")
+            ),
+            responseFields(
+                fieldWithPath("code").type(JsonFieldType.STRING).description("결과 코드"),
+                fieldWithPath("message").type(JsonFieldType.STRING).description("결과 메세지"),
+                fieldWithPath("data.total_page").type(JsonFieldType.NUMBER).description("페이지 총 크기"),
+                fieldWithPath("data.total_elements").type(JsonFieldType.NUMBER).description("반환 데이터 총 크기"),
+                fieldWithPath("data.last").type(JsonFieldType.BOOLEAN).description("페이지 마지막 유무"),
+                fieldWithPath("data.empty").type(JsonFieldType.BOOLEAN).description("페이지 빈값 유무"),
+                fieldWithPath("data.list").type(JsonFieldType.ARRAY).description("주문 리스트"),
+            )
+        ));
+    }
 }
