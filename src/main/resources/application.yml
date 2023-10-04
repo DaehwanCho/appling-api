@@ -77,10 +77,11 @@ spring:
     defer-datasource-initialization: true
   datasource:
     hikari:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: ${db.url:jdbc:mysql://39.118.30.247:8306/appling_dev}
-      username: ${db.username:juno}
-      password: ${db.password:appling@!!#}
+      driver-class-name: org.h2.Driver
+      jdbc-url: jdbc:h2:mem:appling;mode=mysql
+#      jdbc-url: jdbc:h2:tcp://localhost/~/appling
+      username: sa
+      password:
 
 --- #dev
 spring:
