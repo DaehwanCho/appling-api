@@ -2,11 +2,14 @@ package com.juno.appling.order.application;
 
 import com.juno.appling.global.util.MemberUtil;
 import com.juno.appling.member.domain.Member;
+import com.juno.appling.member.domain.Seller;
 import com.juno.appling.order.domain.*;
 import com.juno.appling.order.dto.request.CompleteOrderRequest;
 import com.juno.appling.order.dto.request.TempOrderDto;
 import com.juno.appling.order.dto.request.TempOrderRequest;
 import com.juno.appling.order.dto.response.CompleteOrderResponse;
+import com.juno.appling.order.dto.response.OrderListResponse;
+import com.juno.appling.order.dto.response.OrderVo;
 import com.juno.appling.order.dto.response.PostTempOrderResponse;
 import com.juno.appling.order.dto.response.TempOrderResponse;
 import com.juno.appling.order.enums.OrderStatus;
@@ -16,6 +19,8 @@ import com.juno.appling.product.enums.Status;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +40,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final DeliveryRepository deliveryRepository;
+    private final OrderCustomRepository orderCustomRepository;
     private final MemberUtil memberUtil;
 
     @Transactional
@@ -138,5 +144,14 @@ public class OrderService {
         }
 
         return order;
+    }
+
+    public OrderListResponse getOrderBySeller(Pageable pageable, String search, OrderStatus orderStatus, HttpServletRequest request) {
+        Seller seller = memberUtil.getSeller(request);
+        Page<OrderVo> page = orderCustomRepository.findAllBySeller(pageable, search,
+            orderStatus, seller);
+
+        return new OrderListResponse(page.getTotalPages(), page.getTotalElements(),
+            page.getNumberOfElements(), page.isLast(), page.isEmpty(), page.getContent());
     }
 }

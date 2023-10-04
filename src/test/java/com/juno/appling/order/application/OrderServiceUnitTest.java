@@ -2,8 +2,10 @@ package com.juno.appling.order.application;
 
 import com.juno.appling.global.util.MemberUtil;
 import com.juno.appling.member.domain.Member;
+import com.juno.appling.member.domain.Seller;
 import com.juno.appling.member.enums.Role;
 import com.juno.appling.order.domain.Order;
+import com.juno.appling.order.domain.OrderCustomRepository;
 import com.juno.appling.order.domain.OrderItemRepository;
 import com.juno.appling.order.domain.OrderRepository;
 import com.juno.appling.order.dto.request.CompleteOrderRequest;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.time.LocalDateTime;
@@ -51,6 +54,8 @@ class OrderServiceUnitTest {
     @Mock
     private OrderItemRepository orderItemRepository;
 
+    @Mock
+    private OrderCustomRepository orderCustomRepository;
 
     private MockHttpServletRequest request = new MockHttpServletRequest();
 
@@ -186,5 +191,4 @@ class OrderServiceUnitTest {
         //then
         Assertions.assertThat(completeOrderResponse.getOrderNumber()).contains("ORDER-");
     }
-
 }
